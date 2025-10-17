@@ -66,9 +66,28 @@ class CalendarSyncWebSocketService {
    * Initialize WebSocket server
    */
   public initialize(httpServer: HTTPServer): void {
+    // Get allowed origins from environment or use defaults
+    const allowedOrigins = process.env['CORS_ORIGIN']
+      ? process.env['CORS_ORIGIN'].split(',').map(origin => origin.trim())
+      : [
+          'http://localhost:5173',
+          'http://localhost:3000',
+          'https://holamanag-frontend.netlify.app'
+        ];
+
     this.io = new SocketIOServer(httpServer, {
       cors: {
-        origin: process.env['CLIENT_URL'] || 'http://localhost:3000',
+        origin: (origin, callback) => {
+          // Allow requests with no origin (mobile apps)
+          if (!origin) return callback(null, true);
+          
+          // Check if origin is allowed
+          if (allowedOrigins.includes(origin) || origin.includes('holamanag-frontend.netlify.app')) {
+            return callback(null, true);
+          }
+          
+          callback(new Error('Not allowed by CORS'));
+        },
         methods: ['GET', 'POST'],
         credentials: true
       },

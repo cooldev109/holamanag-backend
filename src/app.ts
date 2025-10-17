@@ -52,12 +52,20 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:8080',
-  'http://127.0.0.1:3000'
+  'http://127.0.0.1:3000',
+  // Production frontend
+  'https://holamanag-frontend.netlify.app'
 ];
 
-// Add custom origins from environment
+// Add custom origins from environment (comma-separated)
 if (process.env['CORS_ORIGIN']) {
-  allowedOrigins.push(...process.env['CORS_ORIGIN'].split(','));
+  const customOrigins = process.env['CORS_ORIGIN'].split(',').map(origin => origin.trim());
+  allowedOrigins.push(...customOrigins);
+}
+
+// In production, allow any Netlify subdomain if configured
+if (process.env['NODE_ENV'] === 'production' && process.env['ALLOW_NETLIFY_SUBDOMAINS'] === 'true') {
+  // This will be handled in the origin function below
 }
 
 const corsOptions = {
@@ -69,16 +77,27 @@ const corsOptions = {
     
     // Check if origin is in allowed list
     if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      logger.warn(`CORS: Blocked request from unauthorized origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+      return callback(null, true);
     }
+    
+    // Allow Netlify preview/branch deployments (e.g., deploy-preview-123--holamanag-frontend.netlify.app)
+    if (origin.includes('holamanag-frontend.netlify.app')) {
+      return callback(null, true);
+    }
+    
+    // Allow any *.netlify.app domain in production if configured
+    if (process.env['ALLOW_NETLIFY_SUBDOMAINS'] === 'true' && origin.endsWith('.netlify.app')) {
+      return callback(null, true);
+    }
+    
+    // Log blocked request
+    logger.warn(`CORS: Blocked request from unauthorized origin: ${origin}`);
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };
 
 app.use(cors(corsOptions));
