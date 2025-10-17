@@ -80,7 +80,7 @@ export const authRateLimit = rateLimit({
 export const speedLimiter: any = slowDown({
   windowMs: parseInt(process.env['SPEED_LIMIT_WINDOW_MS'] || '900000'), // 15 minutes
   delayAfter: parseInt(process.env['SPEED_LIMIT_DELAY_AFTER'] || '50'), // allow 50 requests per 15 minutes, then...
-  delayMs: parseInt(process.env['SPEED_LIMIT_DELAY_MS'] || '500'), // begin adding 500ms of delay per request above 50
+  delayMs: () => parseInt(process.env['SPEED_LIMIT_DELAY_MS'] || '500'), // begin adding 500ms of delay per request above 50
   maxDelayMs: parseInt(process.env['SPEED_LIMIT_MAX_DELAY_MS'] || '20000') // max delay of 20 seconds
 });
 
