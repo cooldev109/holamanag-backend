@@ -423,7 +423,7 @@ const propertySchema = new Schema<IProperty>({
 });
 
 // Indexes for performance
-propertySchema.index({ name: 'text', description: 'text' }); // Text search
+// Note: Text search index is created in config/indexes.ts to avoid conflicts
 propertySchema.index({ 'address.coordinates': '2dsphere' }); // Geospatial
 propertySchema.index({ propertyType: 1, status: 1 }); // Compound
 propertySchema.index({ owner: 1, status: 1 }); // Owner properties

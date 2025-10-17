@@ -13,27 +13,51 @@ export class DatabaseIndexes {
       logger.info('Creating database indexes...');
 
       // User indexes
-      await this.createUserIndexes();
+      try {
+        await this.createUserIndexes();
+      } catch (error) {
+        logger.warn('Failed to create User indexes:', error);
+      }
       
       // Property indexes
-      await this.createPropertyIndexes();
+      try {
+        await this.createPropertyIndexes();
+      } catch (error) {
+        logger.warn('Failed to create Property indexes:', error);
+      }
       
       // Booking indexes
-      await this.createBookingIndexes();
+      try {
+        await this.createBookingIndexes();
+      } catch (error) {
+        logger.warn('Failed to create Booking indexes:', error);
+      }
       
       // RatePlan indexes
-      await this.createRatePlanIndexes();
+      try {
+        await this.createRatePlanIndexes();
+      } catch (error) {
+        logger.warn('Failed to create RatePlan indexes:', error);
+      }
       
       // Calendar indexes
-      await this.createCalendarIndexes();
+      try {
+        await this.createCalendarIndexes();
+      } catch (error) {
+        logger.warn('Failed to create Calendar indexes:', error);
+      }
       
       // Channel indexes
-      await this.createChannelIndexes();
+      try {
+        await this.createChannelIndexes();
+      } catch (error) {
+        logger.warn('Failed to create Channel indexes:', error);
+      }
 
-      logger.info('All database indexes created successfully');
+      logger.info('Database indexes creation completed');
     } catch (error) {
       logger.error('Error creating database indexes:', error);
-      throw error;
+      logger.warn('Failed to create some indexes, but application can continue');
     }
   }
 
@@ -108,7 +132,13 @@ export class DatabaseIndexes {
       await propertyCollection.createIndex({ manager: 1, status: 1 });
       await propertyCollection.createIndex({ 'address.city': 1, 'address.country': 1 });
       
-      // Text search index
+      // Text search index - drop existing conflicting index first
+      try {
+        await propertyCollection.dropIndex('name_text_description_text');
+      } catch (error) {
+        // Index might not exist, continue
+      }
+      
       await propertyCollection.createIndex({
         name: 'text',
         description: 'text',
@@ -256,6 +286,37 @@ export class DatabaseIndexes {
       await calendarCollection.createIndex({ createdAt: -1 });
       
       // Unique compound index (property, room, date)
+      // First, try to drop the existing index if it has issues
+      try {
+        await calendarCollection.dropIndex('property_1_room_1_date_1');
+      } catch (error) {
+        // Index might not exist, continue
+      }
+      
+      // Remove duplicates before creating unique index
+      const duplicates = await calendarCollection.aggregate([
+        {
+          $group: {
+            _id: { property: '$property', room: '$room', date: '$date' },
+            count: { $sum: 1 },
+            ids: { $push: '$_id' }
+          }
+        },
+        {
+          $match: { count: { $gt: 1 } }
+        }
+      ]).toArray();
+      
+      // Remove duplicate entries, keeping only the first one
+      for (const dup of duplicates) {
+        const idsToRemove = dup.ids.slice(1); // Keep first, remove rest
+        await calendarCollection.deleteMany({
+          _id: { $in: idsToRemove }
+        });
+        logger.warn(`Removed ${idsToRemove.length} duplicate calendar entries for property: ${dup._id.property}, room: ${dup._id.room}, date: ${dup._id.date}`);
+      }
+      
+      // Now create the unique index
       await calendarCollection.createIndex(
         { property: 1, room: 1, date: 1 }, 
         { unique: true }
@@ -270,7 +331,8 @@ export class DatabaseIndexes {
       logger.info('Calendar indexes created successfully');
     } catch (error) {
       logger.error('Error creating Calendar indexes:', error);
-      throw error;
+      // Don't throw, just log warning and continue
+      logger.warn('Failed to create some indexes, but application can continue');
     }
   }
 
