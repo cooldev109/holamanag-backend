@@ -19,7 +19,8 @@
     "seed:bookings": "npx ts-node scripts/seed-bookings.ts",
     "seed:inventory": "npx ts-node scripts/seed-correct-inventory.ts",
     "seed:room-availability": "npx ts-node scripts/seed-room-availability.ts",
-    "fix:duplicate-calendars": "npx ts-node scripts/fix-duplicate-calendars.ts"
+    "fix:duplicate-calendars": "npx ts-node scripts/fix-duplicate-calendars.ts",
+    "migrate:atlas": "npx ts-node scripts/migrate-to-atlas.ts"
   },
   "keywords": [
     "channel-manager",

@@ -457,7 +457,7 @@ export class ValidationMiddleware {
             code: err.code
           }));
 
-          logger.warn(`Validation failed for ${property}:`, errors);
+          logger.warn(`Validation failed for ${property}:`, JSON.stringify(errors, null, 2));
 
           res.status(400).json({
             success: false,
