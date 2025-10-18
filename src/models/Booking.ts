@@ -293,7 +293,6 @@ const bookingSchema = new Schema<IBooking>({
   },
   room: {
     type: Schema.Types.ObjectId,
-    ref: 'Property.rooms',
     required: [true, 'Room reference is required'],
     index: true
   },

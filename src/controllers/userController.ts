@@ -664,10 +664,15 @@ export const createTeamMember = async (req: Request, res: Response): Promise<voi
     }
 
     // Create user
+    const profileData: any = { firstName, lastName };
+    if (phone && phone.trim()) {
+      profileData.phone = phone.trim();
+    }
+
     const newUser = await User.create({
       email,
       password,
-      profile: { firstName, lastName, phone: phone || '' },
+      profile: profileData,
       roles: [role],
       isActive: true,
       createdBy: adminId
@@ -719,7 +724,9 @@ export const updateTeamMember = async (req: Request, res: Response): Promise<voi
     if (email) user.email = email;
     if (firstName) user.profile.firstName = firstName;
     if (lastName) user.profile.lastName = lastName;
-    if (phone !== undefined) user.profile.phone = phone;
+    if (phone !== undefined) {
+      user.profile.phone = phone && phone.trim() ? phone.trim() : undefined;
+    }
     if (typeof isActive === 'boolean') user.isActive = isActive;
     
     if (password && password.trim()) {

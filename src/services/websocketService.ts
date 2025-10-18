@@ -9,32 +9,16 @@ class WebSocketService {
    * Initialize Socket.IO with HTTP server
    */
   initialize(httpServer: HTTPServer): void {
-    // Get allowed origins from environment or use defaults
-    const allowedOrigins = process.env['CORS_ORIGIN']
-      ? process.env['CORS_ORIGIN'].split(',').map(origin => origin.trim())
-      : [
-          'http://localhost:5173',
-          'http://localhost:3000',
-          'https://holamanag-frontend.netlify.app'
-        ];
-
+    // Allow all origins for development - for production, use specific origins
     this.io = new SocketIOServer(httpServer, {
       cors: {
-        origin: (origin, callback) => {
-          // Allow requests with no origin (mobile apps)
-          if (!origin) return callback(null, true);
-          
-          // Check if origin is allowed
-          if (allowedOrigins.includes(origin) || origin.includes('holamanag-frontend.netlify.app')) {
-            return callback(null, true);
-          }
-          
-          callback(new Error('Not allowed by CORS'));
-        },
+        origin: "*",
         methods: ['GET', 'POST'],
-        credentials: true
+        credentials: false,
+        allowedHeaders: ['*']
       },
-      transports: ['websocket', 'polling']
+      transports: ['polling', 'websocket'],
+      allowEIO3: true
     });
 
     this.io.on('connection', (socket) => {

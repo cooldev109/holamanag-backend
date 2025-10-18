@@ -71,8 +71,7 @@ export class BookingController {
       // Execute query
       const [bookings, total] = await Promise.all([
         Booking.find(filter)
-          .populate('property', 'name address.city address.country')
-          .populate('room', 'name type baseRate')
+          .populate('property', 'name address rooms')
           .populate('createdBy', 'email profile.firstName profile.lastName')
           .populate('lastModifiedBy', 'email profile.firstName profile.lastName')
           .sort(sort)
@@ -82,6 +81,27 @@ export class BookingController {
         Booking.countDocuments(filter)
       ]);
 
+      // Manually attach room data from property.rooms
+      const enrichedBookings = bookings.map((booking: any) => {
+        let roomData = null;
+        if (booking.property && booking.property.rooms && booking.room) {
+          const room = booking.property.rooms.find((r: any) => r._id.toString() === booking.room.toString());
+          if (room) {
+            roomData = { _id: room._id, name: room.name, type: room.type, baseRate: room.baseRate };
+          }
+        }
+
+        return {
+          ...booking,
+          room: roomData,
+          property: booking.property ? {
+            _id: booking.property._id,
+            name: booking.property.name,
+            address: { city: booking.property.address?.city, country: booking.property.address?.country }
+          } : null
+        };
+      });
+
       // Calculate pagination info
       const totalPages = Math.ceil(total / limit);
       const hasNextPage = page < totalPages;
@@ -90,7 +110,7 @@ export class BookingController {
       res.status(200).json({
         success: true,
         data: {
-          bookings,
+          bookings: enrichedBookings,
           pagination: {
             currentPage: page,
             totalPages,
@@ -134,8 +154,7 @@ export class BookingController {
       const { id } = req.params;
 
       const booking = await Booking.findById(id)
-        .populate('property', 'name address contactInfo')
-        .populate('room', 'name type capacity amenities baseRate')
+        .populate('property', 'name address contactInfo rooms')
         .populate('createdBy', 'email profile.firstName profile.lastName')
         .populate('lastModifiedBy', 'email profile.firstName profile.lastName')
         .populate('cancelledBy', 'email profile.firstName profile.lastName')
@@ -150,9 +169,25 @@ export class BookingController {
         return;
       }
 
+      // Manually attach room data from property.rooms
+      let enrichedBooking: any = { ...booking };
+      if (booking.property && (booking.property as any).rooms && booking.room) {
+        const room = (booking.property as any).rooms.find((r: any) => r._id.toString() === booking.room.toString());
+        if (room) {
+          enrichedBooking.room = {
+            _id: room._id,
+            name: room.name,
+            type: room.type,
+            capacity: room.capacity,
+            amenities: room.amenities,
+            baseRate: room.baseRate
+          };
+        }
+      }
+
       res.status(200).json({
         success: true,
-        data: { booking },
+        data: { booking: enrichedBooking },
         message: 'Booking retrieved successfully'
       });
 
@@ -552,15 +587,35 @@ export class BookingController {
       if (room) filter.room = room;
 
       const bookings = await Booking.find(filter)
-        .populate('property', 'name address.city address.country')
-        .populate('room', 'name type baseRate')
+        .populate('property', 'name address rooms')
         .populate('createdBy', 'email profile.firstName profile.lastName')
         .sort({ checkIn: 1 })
         .lean();
 
+      // Manually attach room data from property.rooms
+      const enrichedBookings = bookings.map((booking: any) => {
+        let roomData = null;
+        if (booking.property && booking.property.rooms && booking.room) {
+          const room = booking.property.rooms.find((r: any) => r._id.toString() === booking.room.toString());
+          if (room) {
+            roomData = { _id: room._id, name: room.name, type: room.type, baseRate: room.baseRate };
+          }
+        }
+
+        return {
+          ...booking,
+          room: roomData,
+          property: booking.property ? {
+            _id: booking.property._id,
+            name: booking.property.name,
+            address: { city: booking.property.address?.city, country: booking.property.address?.country }
+          } : null
+        };
+      });
+
       res.status(200).json({
         success: true,
-        data: { bookings },
+        data: { bookings: enrichedBookings },
         message: 'Bookings retrieved successfully'
       });
 
