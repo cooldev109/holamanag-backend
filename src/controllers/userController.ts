@@ -665,8 +665,11 @@ export const createTeamMember = async (req: Request, res: Response): Promise<voi
 
     // Create user
     const profileData: any = { firstName, lastName };
-    if (phone && phone.trim()) {
-      profileData.phone = phone.trim();
+    // Only add phone if it's provided and not empty
+    if (phone && typeof phone === 'string' && phone.trim().length > 0) {
+      // Remove all spaces and non-digit characters except + at the start
+      const cleanPhone = phone.replace(/\s/g, '').replace(/[^\d+]/g, '');
+      profileData.phone = cleanPhone;
     }
 
     const newUser = await User.create({
@@ -725,7 +728,13 @@ export const updateTeamMember = async (req: Request, res: Response): Promise<voi
     if (firstName) user.profile.firstName = firstName;
     if (lastName) user.profile.lastName = lastName;
     if (phone !== undefined) {
-      user.profile.phone = phone && phone.trim() ? phone.trim() : undefined;
+      if (phone && phone.trim()) {
+        // Remove all spaces and non-digit characters except + at the start
+        const cleanPhone = phone.replace(/\s/g, '').replace(/[^\d+]/g, '');
+        user.profile.phone = cleanPhone;
+      } else {
+        user.profile.phone = undefined;
+      }
     }
     if (typeof isActive === 'boolean') user.isActive = isActive;
     

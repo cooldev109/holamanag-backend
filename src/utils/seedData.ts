@@ -541,74 +541,112 @@ export class SeedData {
     try {
       logger.info('Creating seed bookings...');
 
-      const bookings = [
-        {
-          property: this.propertyIds.resort,
-          room: this.roomIds.resortSuite,
-          guestInfo: {
-            firstName: 'John',
-            lastName: 'Doe',
-            email: 'john.doe@example.com',
-            phone: '+1234567890',
-            nationality: 'American',
-            documentType: 'passport',
-            documentNumber: 'US123456789'
-          },
-          checkIn: new Date('2024-06-15'),
-          checkOut: new Date('2024-06-18'),
-          guests: { adults: 2, children: 1, infants: 0 },
-          status: BookingStatus.CONFIRMED,
-          channel: BookingChannel.AIRBNB,
-          channelBookingId: 'AIRBNB_123456',
-          channelConfirmationCode: 'ABC123',
-          pricing: {
-            baseRate: 897, // 299 * 3 nights
-            taxes: 89.7,
-            fees: 50,
-            discounts: 0,
-            total: 1036.7,
-            currency: 'USD'
-          },
-          notes: 'Guest requested late check-in',
-          specialRequests: ['Late check-in', 'Extra towels'],
-          createdBy: this.userIds.admin
-        },
-        {
-          property: this.propertyIds.hotel,
-          room: this.roomIds.hotelExecutive,
-          guestInfo: {
-            firstName: 'Jane',
-            lastName: 'Smith',
-            email: 'jane.smith@company.com',
-            phone: '+1987654321',
-            nationality: 'Canadian',
-            documentType: 'passport',
-            documentNumber: 'CA987654321'
-          },
-          checkIn: new Date('2024-07-01'),
-          checkOut: new Date('2024-07-03'),
-          guests: { adults: 1, children: 0, infants: 0 },
-          status: BookingStatus.PENDING,
-          channel: BookingChannel.BOOKING,
-          channelBookingId: 'BOOKING_789012',
-          pricing: {
-            baseRate: 598, // 299 * 2 nights
-            taxes: 59.8,
-            fees: 30,
-            discounts: 89.7, // 15% advance booking discount
-            total: 598.1,
-            currency: 'USD'
-          },
-          notes: 'Corporate booking',
-          specialRequests: ['Business center access'],
-          createdBy: this.userIds.admin
-        }
+      const bookings: any[] = [];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Guest names for variety
+      const guestNames = [
+        { firstName: 'John', lastName: 'Doe' },
+        { firstName: 'Jane', lastName: 'Smith' },
+        { firstName: 'Michael', lastName: 'Johnson' },
+        { firstName: 'Emily', lastName: 'Williams' },
+        { firstName: 'David', lastName: 'Brown' },
+        { firstName: 'Sarah', lastName: 'Jones' },
+        { firstName: 'Robert', lastName: 'Garcia' },
+        { firstName: 'Lisa', lastName: 'Martinez' },
+        { firstName: 'James', lastName: 'Davis' },
+        { firstName: 'Maria', lastName: 'Rodriguez' }
       ];
+
+      // Generate bookings for the last 90 days to populate charts
+      for (let daysAgo = 90; daysAgo >= 0; daysAgo--) {
+        const checkInDate = new Date(today);
+        checkInDate.setDate(today.getDate() - daysAgo);
+
+        // Random 2-4 nights stay
+        const nights = 2 + Math.floor(Math.random() * 3);
+        const checkOutDate = new Date(checkInDate);
+        checkOutDate.setDate(checkInDate.getDate() + nights);
+
+        // Create 1-3 bookings per day for better chart data
+        const bookingsPerDay = 1 + Math.floor(Math.random() * 3);
+
+        for (let i = 0; i < bookingsPerDay; i++) {
+          const guest = guestNames[Math.floor(Math.random() * guestNames.length)];
+          const isResort = Math.random() > 0.5;
+          const isSuite = Math.random() > 0.4;
+          const channel = Math.random() > 0.5 ? BookingChannel.AIRBNB : BookingChannel.BOOKING;
+          const status = daysAgo > 7 ? BookingStatus.CONFIRMED :
+                        daysAgo > 3 ? BookingStatus.CHECKED_IN :
+                        daysAgo > 0 ? BookingStatus.CHECKED_OUT :
+                        BookingStatus.CONFIRMED;
+
+          let baseRate, roomId;
+          if (isResort) {
+            if (isSuite) {
+              baseRate = 299 * nights;
+              roomId = this.roomIds.resortSuite;
+            } else {
+              baseRate = 199 * nights;
+              roomId = this.roomIds.resortDeluxe;
+            }
+          } else {
+            if (isSuite) {
+              baseRate = 399 * nights;
+              roomId = this.roomIds.hotelExecutive;
+            } else {
+              baseRate = 149 * nights;
+              roomId = this.roomIds.hotelStandard;
+            }
+          }
+
+          const taxes = baseRate * 0.1;
+          const fees = 30 + (nights * 10);
+          const total = baseRate + taxes + fees;
+
+          bookings.push({
+            property: isResort ? this.propertyIds.resort : this.propertyIds.hotel,
+            room: roomId,
+            guestInfo: {
+              firstName: guest.firstName,
+              lastName: guest.lastName,
+              email: `${guest.firstName.toLowerCase()}.${guest.lastName.toLowerCase()}@example.com`,
+              phone: `+1${Math.floor(Math.random() * 9000000000) + 1000000000}`,
+              nationality: 'American',
+              documentType: 'passport',
+              documentNumber: `US${Math.floor(Math.random() * 900000000) + 100000000}`
+            },
+            checkIn: checkInDate,
+            checkOut: checkOutDate,
+            guests: {
+              adults: 1 + Math.floor(Math.random() * 2),
+              children: Math.floor(Math.random() * 2),
+              infants: 0
+            },
+            status: status,
+            channel: channel,
+            channelBookingId: `${channel.toUpperCase()}_${Math.floor(Math.random() * 900000) + 100000}`,
+            channelConfirmationCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+            pricing: {
+              baseRate: baseRate,
+              taxes: taxes,
+              fees: fees,
+              discounts: 0,
+              total: total,
+              currency: 'USD'
+            },
+            notes: i % 3 === 0 ? 'Guest requested late check-in' : '',
+            specialRequests: i % 2 === 0 ? ['Extra towels'] : [],
+            createdBy: this.userIds.admin
+          });
+        }
+      }
 
       const createdBookings = await Booking.insertMany(bookings);
       logger.info(`Created ${createdBookings.length} seed bookings`);
 
-      // Store booking IDs for calendar
+      // Store some booking IDs for calendar
       this.bookingIds = {
         resortBooking: createdBookings[0]._id,
         hotelBooking: createdBookings[1]._id

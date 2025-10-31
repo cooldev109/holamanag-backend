@@ -150,9 +150,9 @@ class AnalyticsService {
 
       logger.info(`[Analytics] Calculating revenue breakdown from ${startDate.toISOString()} to ${endDate.toISOString()}`);
 
-      // Build query
+      // Build query - use checkIn date for revenue attribution
       const query: any = {
-        createdAt: { $gte: startDate, $lte: endDate },
+        checkIn: { $gte: startDate, $lte: endDate },
         status: { $in: [BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN, BookingStatus.CHECKED_OUT] }
       };
 
@@ -314,9 +314,9 @@ class AnalyticsService {
 
       logger.info(`[Analytics] Calculating booking statistics from ${startDate.toISOString()} to ${endDate.toISOString()}`);
 
-      // Build query
+      // Build query - use checkIn date for booking statistics
       const query: any = {
-        createdAt: { $gte: startDate, $lte: endDate }
+        checkIn: { $gte: startDate, $lte: endDate }
       };
 
       if (propertyId) {
@@ -386,9 +386,9 @@ class AnalyticsService {
 
       logger.info(`[Analytics] Calculating revenue trend from ${startDate.toISOString()} to ${endDate.toISOString()}`);
 
-      // Build query
+      // Build query - use checkIn date for revenue attribution
       const matchQuery: any = {
-        createdAt: { $gte: startDate, $lte: endDate },
+        checkIn: { $gte: startDate, $lte: endDate },
         status: { $in: [BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN, BookingStatus.CHECKED_OUT] }
       };
 
@@ -396,15 +396,15 @@ class AnalyticsService {
         matchQuery.property = new mongoose.Types.ObjectId(propertyId);
       }
 
-      // Aggregate by day
+      // Aggregate by day using checkIn date
       const dailyRevenue = await Booking.aggregate([
         { $match: matchQuery },
         {
           $group: {
             _id: {
-              year: { $year: '$createdAt' },
-              month: { $month: '$createdAt' },
-              day: { $dayOfMonth: '$createdAt' }
+              year: { $year: '$checkIn' },
+              month: { $month: '$checkIn' },
+              day: { $dayOfMonth: '$checkIn' }
             },
             revenue: { $sum: '$pricing.total' }
           }

@@ -93,84 +93,85 @@ async function seedBookings() {
       if (!property.rooms || property.rooms.length === 0) continue;
 
       const numRooms = property.rooms.length;
-      
-      // Create 5-10 bookings per property
-      const numBookings = Math.floor(Math.random() * 6) + 5;
 
-      for (let i = 0; i < numBookings; i++) {
-        const room = property.rooms[Math.floor(Math.random() * numRooms)];
-        const guest = guests[Math.floor(Math.random() * guests.length)];
-        const channel = channels[Math.floor(Math.random() * channels.length)];
-        
-        // Random dates in the future (next 90 days)
-        const daysFromNow = Math.floor(Math.random() * 90);
-        const checkIn = new Date(now);
-        checkIn.setDate(now.getDate() + daysFromNow);
-        checkIn.setHours(15, 0, 0, 0); // Check-in at 3 PM
+      // Create 2-4 bookings per day for the past 90 days for better chart data
+      for (let daysAgo = 90; daysAgo >= 0; daysAgo--) {
+        const bookingsPerDay = Math.floor(Math.random() * 3) + 2; // 2-4 bookings per day
 
-        const nights = Math.floor(Math.random() * 7) + 1; // 1-7 nights
-        const checkOut = new Date(checkIn);
-        checkOut.setDate(checkIn.getDate() + nights);
-        checkOut.setHours(11, 0, 0, 0); // Check-out at 11 AM
+        for (let i = 0; i < bookingsPerDay; i++) {
+          const room = property.rooms[Math.floor(Math.random() * numRooms)];
+          const guest = guests[Math.floor(Math.random() * guests.length)];
+          const channel = channels[Math.floor(Math.random() * channels.length)];
 
-        const adults = Math.floor(Math.random() * 3) + 1; // 1-3 adults
-        const children = Math.random() > 0.7 ? Math.floor(Math.random() * 2) : 0; // 0-1 children (30% chance)
+          // Historical dates (past 90 days)
+          const checkIn = new Date(now);
+          checkIn.setDate(now.getDate() - daysAgo);
+          checkIn.setHours(15, 0, 0, 0); // Check-in at 3 PM
 
-        // Calculate pricing
-        const baseRate = (room.baseRate || 100) * nights;
-        const taxes = baseRate * 0.1; // 10% tax
-        const fees = 25; // Fixed cleaning fee
-        const total = baseRate + taxes + fees;
+          const nights = Math.floor(Math.random() * 4) + 2; // 2-5 nights
+          const checkOut = new Date(checkIn);
+          checkOut.setDate(checkIn.getDate() + nights);
+          checkOut.setHours(11, 0, 0, 0); // Check-out at 11 AM
 
-        // Generate unique confirmation code
-        const confirmationCode = `${channel.substring(0, 3).toUpperCase()}-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+          const adults = Math.floor(Math.random() * 3) + 1; // 1-3 adults
+          const children = Math.random() > 0.7 ? Math.floor(Math.random() * 2) : 0; // 0-1 children (30% chance)
 
-        // Random status (most confirmed, some checked-in/out for past bookings)
-        let status: BookingStatus = BookingStatus.CONFIRMED;
-        if (daysFromNow < 0) {
-          status = BookingStatus.CHECKED_OUT;
-        } else if (daysFromNow <= 2) {
-          status = Math.random() > 0.5 ? BookingStatus.CONFIRMED : BookingStatus.CHECKED_IN;
+          // Calculate pricing
+          const baseRate = (room.baseRate || 100) * nights;
+          const taxes = baseRate * 0.1; // 10% tax
+          const fees = 25; // Fixed cleaning fee
+          const total = baseRate + taxes + fees;
+
+          // Generate unique confirmation code
+          const confirmationCode = `${channel.substring(0, 3).toUpperCase()}-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+          // All historical bookings are checked out
+          let status: BookingStatus = BookingStatus.CHECKED_OUT;
+          if (daysAgo <= 0) {
+            status = BookingStatus.CHECKED_IN;
+          } else if (daysAgo <= 3) {
+            status = Math.random() > 0.5 ? BookingStatus.CONFIRMED : BookingStatus.CHECKED_IN;
+          }
+
+          bookingsToCreate.push({
+            property: property._id,
+            room: room._id,
+            checkIn,
+            checkOut,
+            guestInfo: {
+              firstName: guest.firstName,
+              lastName: guest.lastName,
+              email: `${guest.firstName.toLowerCase()}.${guest.lastName.toLowerCase()}@email.com`,
+              phone: `+1${Math.floor(Math.random() * 9000000000) + 1000000000}`,
+              nationality: guest.nationality,
+              documentType: 'passport',
+              documentNumber: `${guest.nationality}${Math.floor(Math.random() * 1000000)}`
+            },
+            guests: {
+              adults,
+              children,
+              infants: 0
+            },
+            status,
+            channel,
+            confirmationCode,
+            pricing: {
+              baseRate,
+              taxes,
+              fees,
+              discounts: 0,
+              total,
+              currency: room.currency || 'USD'
+            },
+            specialRequests: Math.random() > 0.7 ? [
+              ['Early check-in if possible', 'Late check-out requested', 'High floor preferred', 'Extra towels please'][Math.floor(Math.random() * 4)]
+            ] : [],
+            bookingType: 'guest' as const,
+            bookingSource: channel
+          });
+
+          bookingCount++;
         }
-
-        bookingsToCreate.push({
-          property: property._id,
-          room: room._id,
-          checkIn,
-          checkOut,
-          guestInfo: {
-            firstName: guest.firstName,
-            lastName: guest.lastName,
-            email: `${guest.firstName.toLowerCase()}.${guest.lastName.toLowerCase()}@email.com`,
-            phone: `+1${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-            nationality: guest.nationality,
-            documentType: 'passport',
-            documentNumber: `${guest.nationality}${Math.floor(Math.random() * 1000000)}`
-          },
-          guests: {
-            adults,
-            children,
-            infants: 0
-          },
-          status,
-          channel,
-          confirmationCode,
-          pricing: {
-            baseRate,
-            taxes,
-            fees,
-            discounts: 0,
-            total,
-            currency: room.currency || 'USD'
-          },
-          specialRequests: Math.random() > 0.7 ? [
-            ['Early check-in if possible', 'Late check-out requested', 'High floor preferred', 'Extra towels please'][Math.floor(Math.random() * 4)]
-          ] : [],
-          bookingType: 'guest' as const,
-          bookingSource: channel
-        });
-
-        bookingCount++;
       }
     }
 
