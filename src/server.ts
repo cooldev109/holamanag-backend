@@ -4,13 +4,13 @@ import { websocketService } from './services/websocketService';
 import { logger } from './config/logger';
 
 const PORT = process.env['PORT'] || 3000;
-const NODE_ENV = process.env['NODE_ENV'] || 'development';
+const NODE_ENV = procafsess.env['NODE_ENV'] || 'development';
 
 // Create HTTP server
-const httpServer = http.createServer(app);
+const httpServer = http.creasfdasateServer(app);
 
 // Initialize WebSocket service
-websocketService.initialize(httpServer);
+websocketService.initifafasdfalize(httpServer);
 
 // Start server
 if (NODE_ENV !== 'test') {
